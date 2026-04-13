@@ -537,24 +537,22 @@ function selectOption(selected) {
   const correctLetter = q.answer;
   const isCorrect = selected === correctLetter;
 
-  if (isCorrect) {
-    score++;
-  } else {
-    // 틀리면 즉시 초기 화면으로 돌아가기
-    showToast('❌ 오답입니다! 처음으로 돌아갑니다.');
+  if (!isCorrect) {
+    // 틀리면 점수 저장 후 결과 화면으로
+    answered[current] = { selected, correctLetter, isCorrect: false };
+    
+    // 틀린 문제 기록
+    wrongQ.push({ q, selected, correctLetter });
+    
+    showToast('❌ 오답입니다!');
     setTimeout(() => {
-      document.getElementById('quiz-screen').style.display = 'none';
-      document.getElementById('setup-screen').style.display = 'block';
-      current = 0; 
-      score = 0; 
-      answered = []; 
-      wrongQ = [];
-      document.getElementById('student-name').value = '';
-      window.scrollTo(0, 0);
-    }, 1000);
+      showResult(true); // true = 오답으로 끝남
+    }, 800);
     return;
   }
 
+  // 정답인 경우
+  score++;
   answered[current] = { selected, correctLetter, isCorrect };
 
   // Style options
@@ -624,7 +622,7 @@ function prevQ() {
 }
 
 // ── RESULT ──
-async function showResult() {
+async function showResult(isIncomplete = false) {
   document.getElementById('quiz-screen').style.display = 'none';
   document.getElementById('result-screen').style.display = 'block';
 
@@ -633,26 +631,46 @@ async function showResult() {
   const name = document.getElementById('student-name').value.trim();
 
   document.getElementById('res-score').textContent = `${score}문항`;
-  document.getElementById('res-label').textContent = `맞춘 문항 (${score}/${total})`;
+  
+  if (isIncomplete) {
+    // 오답으로 중단된 경우
+    document.getElementById('res-label').textContent = `시험 중단 (${score}/${total})`;
+    document.getElementById('res-emoji').textContent = '❌';
+    const gradeEl = document.getElementById('res-grade');
+    gradeEl.textContent = '오답으로 인해 종료됨';
+    gradeEl.style.background = '#ef444422';
+    gradeEl.style.color = '#ef4444';
+  } else {
+    // 정상 완료
+    document.getElementById('res-label').textContent = `맞춘 문항 (${score}/${total})`;
+    
+    let emoji, grade, color;
+    if (pct >= 90) { emoji = '🏆'; grade = 'S등급 — 탁월함!'; color = '#f59e0b'; }
+    else if (pct >= 80) { emoji = '🥇'; grade = 'A등급 — 우수!'; color = '#22c55e'; }
+    else if (pct >= 70) { emoji = '🥈'; grade = 'B등급 — 양호'; color = '#3b82f6'; }
+    else if (pct >= 60) { emoji = '🥉'; grade = 'C등급 — 보통'; color = '#a855f7'; }
+    else { emoji = '📚'; grade = 'D등급 — 더 공부해요'; color = '#ef4444'; }
+
+    document.getElementById('res-emoji').textContent = emoji;
+    const gradeEl = document.getElementById('res-grade');
+    gradeEl.textContent = grade;
+    gradeEl.style.background = color + '22';
+    gradeEl.style.color = color;
+  }
+
   document.getElementById('res-name').textContent = name ? `학번: ${name}` : '';
-
-  let emoji, grade, color;
-  if (pct >= 90) { emoji = '🏆'; grade = 'S등급 — 탁월함!'; color = '#f59e0b'; }
-  else if (pct >= 80) { emoji = '🥇'; grade = 'A등급 — 우수!'; color = '#22c55e'; }
-  else if (pct >= 70) { emoji = '🥈'; grade = 'B등급 — 양호'; color = '#3b82f6'; }
-  else if (pct >= 60) { emoji = '🥉'; grade = 'C등급 — 보통'; color = '#a855f7'; }
-  else { emoji = '📚'; grade = 'D등급 — 더 공부해요'; color = '#ef4444'; }
-
-  document.getElementById('res-emoji').textContent = emoji;
-  const gradeEl = document.getElementById('res-grade');
-  gradeEl.textContent = grade;
-  gradeEl.style.background = color + '22';
-  gradeEl.style.color = color;
 
   // Wrong list
   if (wrongQ.length > 0) {
     document.getElementById('wrong-list-wrap').style.display = 'block';
-    document.getElementById('btn-retry-wrong').style.display = 'inline-block';
+    
+    // 오답으로 중단된 경우 "틀린 문제만 다시" 버튼 숨기기
+    if (isIncomplete) {
+      document.getElementById('btn-retry-wrong').style.display = 'none';
+    } else {
+      document.getElementById('btn-retry-wrong').style.display = 'inline-block';
+    }
+    
     const container = document.getElementById('wrong-items');
     container.innerHTML = '';
     wrongQ.forEach(({ q, selected, correctLetter }) => {
@@ -674,7 +692,9 @@ async function showResult() {
     });
   } else {
     document.getElementById('wrong-list-wrap').style.display = 'none';
-    document.getElementById('btn-retry-wrong').style.display = 'none';
+    if (!isIncomplete) {
+      document.getElementById('btn-retry-wrong').style.display = 'none';
+    }
   }
 
   // Firebase에 점수 저장
