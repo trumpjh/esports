@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>e스포츠 윤리 퀴즈</title>
+  <style>
+    :root {
+      --primary: #6C63FF;
+      --primary-dark: #574fd6;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card2: #263348;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #6C63FF 0%, #a855f7 100%);
+      padding: 24px 20px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; }
+    header p  { font-size: 0.9rem; opacity: .85; margin-top: 4px; }
+
+    /* ── CONTAINER ── */
+    .wrap { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
+
+    /* ── SETUP SCREEN ── */
+    #setup-screen { display: block; }
+    #quiz-screen  { display: none; }
+    #result-screen{ display: none; }
+
+    .setup-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .setup-card h2 { font-size: 1.15rem; margin-bottom: 18px; color: var(--primary); }
+
+    .form-row { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+
+    select, input[type=number] {
+      width: 100%;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 1rem;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: var(--primary); }
+
+    .range-row { display: flex; gap: 10px; }
+    .range-row > div { flex: 1; }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform .12s, opacity .12s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+
+    /* ── PROGRESS ── */
+    .progress-bar-wrap {
+      background: var(--card2);
+      border-radius: 8px;
+      height: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6C63FF, #a855f7);
+      border-radius: 8px;
+      transition: width .3s;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── QUESTION CARD ── */
+    .q-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 26px;
+    }
+    .q-number {
+      font-size: 0.78rem;
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
+    }
+    .q-text {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+
+    /* ── OPTIONS ── */
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--card2);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .option:hover:not(.disabled) { border-color: var(--primary); background: #263a56; }
+    .option.selected  { border-color: var(--primary); background: #1e1b4b; }
+    .option.correct   { border-color: var(--success); background: #14532d44; }
+    .option.wrong     { border-color: var(--danger);  background: #7f1d1d44; }
+    .option.disabled  { cursor: default; }
+
+    .opt-badge {
+      min-width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .9rem;
+      background: var(--border);
+      color: var(--text);
+      flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .option.correct .opt-badge { background: var(--success); color: #fff; }
+    .option.wrong   .opt-badge { background: var(--danger);  color: #fff; }
+    .option.selected .opt-badge { background: var(--primary); color: #fff; }
+
+    .opt-text { line-height: 1.5; font-size: .95rem; }
+
+    /* ── EXPLANATION ── */
+    .explanation {
+      margin-top: 18px;
+      background: #1e293b;
+      border-left: 4px solid var(--primary);
+      border-radius: 0 10px 10px 0;
+      padding: 14px 16px;
+      font-size: .88rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+      display: none;
+    }
+    .explanation.show { display: block; }
+    .explanation strong { color: #a5f3fc; }
+
+    /* ── NAV BUTTONS ── */
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 22px;
+      gap: 12px;
+    }
+    .nav-row .btn { padding: 11px 22px; font-size: .92rem; }
+
+    /* ── SCORE BADGE ── */
+    .score-live {
+      background: var(--card2);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .score-live span { color: var(--success); font-weight: 700; }
+
+    /* ── RESULT SCREEN ── */
+    .result-hero {
+      text-align: center;
+      padding: 36px 20px 28px;
+      background: var(--card);
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .result-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .result-score { font-size: 3.2rem; font-weight: 900; color: var(--primary); }
+    .result-label { color: var(--muted); margin-top: 6px; }
+    .result-grade {
+      display: inline-block;
+      padding: 6px 20px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-top: 12px;
+    }
+
+    .wrong-list { background: var(--card); border-radius: 16px; padding: 22px; }
+    .wrong-list h3 { font-size: 1rem; margin-bottom: 16px; color: var(--danger); }
+    .wrong-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      font-size: .88rem;
+    }
+    .wrong-item .wq { font-weight: 600; margin-bottom: 8px; line-height: 1.5; }
+    .wrong-item .wa { color: var(--success); }
+    .wrong-item .wu { color: var(--danger); text-decoration: line-through; opacity: .7; }
+    .wrong-item .we { margin-top: 8px; color: #94a3b8; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 8px; }
+
+    .result-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .result-actions .btn { flex: 1; min-width: 140px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #334155;
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: .9rem;
+      transition: transform .3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎮 e스포츠 윤리 퀴즈</h1>
+  <p>54문항으로 e스포츠 윤리를 공부해보세요</p>
+</header>
+
+<!-- ── SETUP SCREEN ── -->
+<div class="wrap" id="setup-screen">
+  <div class="setup-card">
+    <h2>⚙️ 시험 설정</h2>
+
+    <div class="form-row">
+      <label>이름 (선택)</label>
+      <input type="text" id="student-name" placeholder="이름을 입력하세요" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:1rem;outline:none;" />
+    </div>
+
+    <div class="form-row">
+      <label>문제 수</label>
+      <select id="q-count">
+        <option value="10">10문제</option>
+        <option value="20">20문제</option>
+        <option value="30">30문제</option>
+        <option value="54" selected>전체 54문제</option>
+        <option value="custom">직접 입력</option>
+      </select>
+    </div>
+
+    <div class="form-row" id="custom-count-row" style="display:none">
+      <label>문제 수 직접 입력 (1~54)</label>
+      <input type="number" id="custom-count" min="1" max="54" value="15" />
+    </div>
+
+    <div class="form-row">
+      <label>문제 범위</label>
+      <div class="range-row">
+        <div>
+          <label>시작 문항</label>
+          <input type="number" id="range-start" min="1" max="54" value="1" />
+        </div>
+        <div>
+          <label>끝 문항</label>
+          <input type="number" id="range-end" min="1" max="54" value="54" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>문제 순서</label>
+      <select id="q-order">
+        <option value="sequential">순서대로</option>
+        <option value="random" selected>무작위 섞기</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>보기 순서</label>
+      <select id="opt-order">
+        <option value="fixed">원래 순서 유지</option>
+        <option value="random">무작위 섞기</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="startQuiz()">▶ 시험 시작</button>
+  </div>
+
+  <div class="setup-card" style="font-size:.85rem; color:var(--muted); line-height:1.7;">
+    <h2 style="color:var(--muted);">📌 안내</h2>
+    <ul style="padding-left:18px; margin-top:8px;">
+      <li>각 문항은 5지 선다형입니다.</li>
+      <li>답을 선택하면 즉시 정오 피드백과 해설을 볼 수 있습니다.</li>
+      <li>시험이 끝나면 점수와 틀린 문제를 확인할 수 있습니다.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── QUIZ SCREEN ── -->
+<div class="wrap" id="quiz-screen">
+  <div class="progress-text">
+    <span id="prog-text">문제 1 / 54</span>
+    <div class="score-live">맞은 문제: <span id="live-score">0</span></div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="prog-bar" style="width:0%"></div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-number" id="q-number">문제 1</div>
+    <div class="q-text" id="q-text"></div>
+    <div id="options-wrap"></div>
+    <div class="explanation" id="explanation"></div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn btn-outline" id="btn-prev" onclick="prevQ()" style="display:none">← 이전</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" id="btn-next" onclick="nextQ()" disabled>다음 →</button>
+  </div>
+</div>
+
+<!-- ── RESULT SCREEN ── -->
+<div class="wrap" id="result-screen">
+  <div class="result-hero">
+    <div class="result-emoji" id="res-emoji">🎉</div>
+    <div class="result-score" id="res-score">0 / 0</div>
+    <div class="result-label" id="res-label">점수</div>
+    <div class="result-grade" id="res-grade"></div>
+    <div style="color:var(--muted);font-size:.85rem;margin-top:14px;" id="res-name"></div>
+  </div>
+
+  <div class="wrong-list" id="wrong-list-wrap" style="display:none">
+    <h3>❌ 틀린 문제 복습</h3>
+    <div id="wrong-items"></div>
+  </div>
+
+  <div class="result-actions">
+    <button class="btn btn-outline" onclick="retryWrong()" id="btn-retry-wrong" style="display:none">틀린 문제만 다시</button>
+    <button class="btn btn-primary" onclick="goSetup()">처음으로</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA ──
+let ALL_QUESTIONS = [];
+
+// ── STATE ──
+let questions = [];
+let current = 0;
+let score = 0;
+let answered = []; // {index, selected, correct, correctLetter}
+let wrongQ = [];
+
+// ── LOAD JSON ──
+fetch('questions.json')
+  .then(r => r.json())
+  .then(data => {
+    ALL_QUESTIONS = data;
+    console.log(`Loaded ${ALL_QUESTIONS.length} questions`);
+  })
+  .catch(() => {
+    showToast('⚠️ 문제 데이터를 불러오지 못했습니다.');
+  });
+
+// ── SETUP ──
+document.getElementById('q-count').addEventListener('change', function() {
+  document.getElementById('custom-count-row').style.display =
+    this.value === 'custom' ? 'block' : 'none';
+});
+
+function startQuiz() {
+  if (!ALL_QUESTIONS.length) { showToast('데이터 로딩 중입니다. 잠시 후 다시 시도하세요.'); return; }
+
+  const start = parseInt(document.getElementById('range-start').value) || 1;
+  const end   = parseInt(document.getElementById('range-end').value)   || 54;
+  let pool = ALL_QUESTIONS.filter(q => q.number >= start && q.number <= end);
+
+  const order = document.getElementById('q-order').value;
+  if (order === 'random') pool = shuffle([...pool]);
+
+  const cntSel = document.getElementById('q-count').value;
+  let cnt = cntSel === 'custom'
+    ? parseInt(document.getElementById('custom-count').value) || 10
+    : parseInt(cntSel);
+  cnt = Math.min(cnt, pool.length);
+  questions = pool.slice(0, cnt);
+
+  current = 0; score = 0; answered = []; wrongQ = [];
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQ();
+}
+
+// ── RENDER QUESTION ──
+function renderQ() {
+  const q = questions[current];
+  const total = questions.length;
+  const pct = (current / total) * 100;
+
+  document.getElementById('prog-text').textContent = `문제 ${current + 1} / ${total}`;
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('live-score').textContent = score;
+  document.getElementById('q-number').textContent = `문제 ${current + 1} (문항 ${q.number})`;
+  document.getElementById('q-text').textContent = q.question;
+
+  // Options
+  const optOrder = document.getElementById('opt-order').value;
+  let letters = Object.keys(q.options);
+  if (optOrder === 'random') letters = shuffle([...letters]);
+
+  const wrap = document.getElementById('options-wrap');
+  wrap.innerHTML = '';
+  letters.forEach(letter => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.dataset.letter = letter;
+    div.innerHTML = `
+      <div class="opt-badge">${letter}</div>
+      <div class="opt-text">${q.options[letter]}</div>
+    `;
+    div.onclick = () => selectOption(letter);
+    wrap.appendChild(div);
+  });
+
+  document.getElementById('explanation').className = 'explanation';
+  document.getElementById('explanation').innerHTML = '';
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-next').textContent = current < questions.length - 1 ? '다음 →' : '결과 보기';
+  document.getElementById('btn-prev').style.display = current > 0 ? 'inline-block' : 'none';
+}
+
+// ── SELECT OPTION ──
+function selectOption(selected) {
+  // If already answered, ignore
+  if (answered[current] !== undefined) return;
+
+  const q = questions[current];
+  const correctLetter = q.answer;
+  const isCorrect = selected === correctLetter;
+
+  if (isCorrect) score++;
+  else wrongQ.push({ q, selected, correctLetter });
+
+  answered[current] = { selected, correctLetter, isCorrect };
+
+  // Style options
+  document.querySelectorAll('.option').forEach(el => {
+    el.classList.add('disabled');
+    const l = el.dataset.letter;
+    if (l === correctLetter) el.classList.add('correct');
+    else if (l === selected && !isCorrect) el.classList.add('wrong');
+  });
+
+  // Show explanation
+  const expDiv = document.getElementById('explanation');
+  const exps = q.explanations || {};
+
+  // Build explanation HTML
+  let html = '';
+  if (isCorrect) {
+    html += `<strong>✅ 정답입니다!</strong><br><br>`;
+  } else {
+    html += `<strong>❌ 오답입니다. 정답은 ${correctLetter}번입니다.</strong><br><br>`;
+  }
+
+  // Show correct answer explanation
+  const correctExp = exps[correctLetter] || '';
+  const cleanExp = correctExp.replace('[정답] ', '').replace(/^[A-E]\..+?((?=[가-힣])|$)/, '').trim();
+  // Just show the explanation part after the option text
+  const optText = q.options[correctLetter] || '';
+  let expText = cleanExp;
+  if (expText.startsWith(optText)) expText = expText.slice(optText.length).trim();
+  if (expText) html += `<strong>해설:</strong> ${expText}`;
+
+  expDiv.innerHTML = html;
+  expDiv.classList.add('show');
+
+  document.getElementById('live-score').textContent = score;
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextQ() {
+  if (current < questions.length - 1) {
+    current++;
+    renderQ();
+    window.scrollTo(0, 0);
+  } else {
+    showResult();
+  }
+}
+
+function prevQ() {
+  if (current > 0) {
+    current--;
+    renderQ();
+    // Re-apply answered state
+    const ans = answered[current];
+    if (ans) {
+      const q = questions[current];
+      document.querySelectorAll('.option').forEach(el => {
+        el.classList.add('disabled');
+        const l = el.dataset.letter;
+        if (l === ans.correctLetter) el.classList.add('correct');
+        else if (l === ans.selected && !ans.isCorrect) el.classList.add('wrong');
+      });
+      document.getElementById('btn-next').disabled = false;
+    }
+    window.scrollTo(0, 0);
+  }
+}
+
+// ── RESULT ──
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+
+  const total = questions.length;
+  const pct = Math.round((score / total) * 100);
+  const name = document.getElementById('student-name').value.trim();
+
+  document.getElementById('res-score').textContent = `${score} / ${total}`;
+  document.getElementById('res-label').textContent = `정답률 ${pct}%`;
+  document.getElementById('res-name').textContent = name ? `${name}님의 결과입니다.` : '';
+
+  let emoji, grade, color;
+  if (pct >= 90) { emoji = '🏆'; grade = 'S등급 — 탁월함!'; color = '#f59e0b'; }
+  else if (pct >= 80) { emoji = '🥇'; grade = 'A등급 — 우수!'; color = '#22c55e'; }
+  else if (pct >= 70) { emoji = '🥈'; grade = 'B등급 — 양호'; color = '#3b82f6'; }
+  else if (pct >= 60) { emoji = '🥉'; grade = 'C등급 — 보통'; color = '#a855f7'; }
+  else { emoji = '📚'; grade = 'D등급 — 더 공부해요'; color = '#ef4444'; }
+
+  document.getElementById('res-emoji').textContent = emoji;
+  const gradeEl = document.getElementById('res-grade');
+  gradeEl.textContent = grade;
+  gradeEl.style.background = color + '22';
+  gradeEl.style.color = color;
+
+  // Wrong list
+  if (wrongQ.length > 0) {
+    document.getElementById('wrong-list-wrap').style.display = 'block';
+    document.getElementById('btn-retry-wrong').style.display = 'inline-block';
+    const container = document.getElementById('wrong-items');
+    container.innerHTML = '';
+    wrongQ.forEach(({ q, selected, correctLetter }) => {
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      const exps = q.explanations || {};
+      const correctExp = (exps[correctLetter] || '').replace('[정답] ', '');
+      const optText = q.options[correctLetter] || '';
+      let expText = correctExp;
+      if (expText.startsWith(optText)) expText = expText.slice(optText.length).trim();
+
+      div.innerHTML = `
+        <div class="wq">문항 ${q.number}. ${q.question}</div>
+        <div class="wu">내 답: ${selected}. ${q.options[selected] || ''}</div>
+        <div class="wa">정답: ${correctLetter}. ${q.options[correctLetter] || ''}</div>
+        ${expText ? `<div class="we">💡 ${expText}</div>` : ''}
+      `;
+      container.appendChild(div);
+    });
+  } else {
+    document.getElementById('wrong-list-wrap').style.display = 'none';
+    document.getElementById('btn-retry-wrong').style.display = 'none';
+  }
+
+  window.scrollTo(0, 0);
+}
+
+function retryWrong() {
+  questions = wrongQ.map(w => w.q);
+  current = 0; score = 0; answered = []; wrongQ = [];
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQ();
+}
+
+function goSetup() {
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+// ── UTILS ──
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
