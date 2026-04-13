@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>e스포츠 윤리 퀴즈</title>
   
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   
   <style>
     :root {
@@ -324,7 +324,7 @@
       </select>
     </div>
 
-    <button class="btn btn-primary" onclick="startQuiz()">▶ 시험 시작</button>
+    <button class="btn btn-primary" onclick="startQuiz()" id="start-btn" disabled style="opacity: 0.5; cursor: not-allowed;">⏳ 데이터 로딩중...</button>
   </div>
 
   <div class="setup-card" style="font-size:.85rem; color:var(--muted); line-height:1.7;">
@@ -403,8 +403,14 @@ const firebaseConfig = {
 };
 
 // Firebase 초기화
-firebase.initializeApp(firebaseConfig);
-let db = firebase.database();
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  console.log('✅ Firebase 초기화 완료');
+} catch (err) {
+  console.error('Firebase 초기화 실패:', err);
+}
 
 // ── DATA ──
 let ALL_QUESTIONS = [];
@@ -421,10 +427,17 @@ fetch('questions.json')
   .then(r => r.json())
   .then(data => {
     ALL_QUESTIONS = data;
-    console.log(`Loaded ${ALL_QUESTIONS.length} questions`);
+    console.log(`✅ ${ALL_QUESTIONS.length}개 문제 로드 완료`);
+    // 시작 버튼 활성화
+    const startBtn = document.getElementById('start-btn');
+    startBtn.disabled = false;
+    startBtn.textContent = '▶ 시험 시작';
+    startBtn.style.opacity = '1';
+    startBtn.style.cursor = 'pointer';
   })
-  .catch(() => {
-    showToast('⚠️ 문제 데이터를 불러오지 못했습니다.');
+  .catch((err) => {
+    console.error('questions.json 로드 실패:', err);
+    showToast('⚠️ 문제 데이터를 불러오지 못했습니다. 페이지를 새로고침하세요.');
   });
 
 // ── SETUP ──
@@ -434,11 +447,28 @@ document.getElementById('q-count').addEventListener('change', function() {
 });
 
 function startQuiz() {
-  if (!ALL_QUESTIONS.length) { showToast('데이터 로딩 중입니다. 잠시 후 다시 시도하세요.'); return; }
+  console.log('startQuiz 함수 실행됨');
+  console.log('ALL_QUESTIONS 로드 상태:', ALL_QUESTIONS.length);
+  
+  // 학번 입력 확인
+  const studentName = document.getElementById('student-name').value.trim();
+  if (!studentName) {
+    showToast('⚠️ 학번을 입력하세요.');
+    return;
+  }
+
+  // 문제 데이터 로드 확인
+  if (!ALL_QUESTIONS.length) { 
+    console.error('문제 데이터가 로드되지 않음');
+    showToast('⚠️ 문제 데이터를 불러오는 중입니다. 잠시 후 다시 시도하세요.'); 
+    return; 
+  }
 
   const start = parseInt(document.getElementById('range-start').value) || 1;
   const end   = parseInt(document.getElementById('range-end').value)   || 54;
   let pool = ALL_QUESTIONS.filter(q => q.number >= start && q.number <= end);
+
+  console.log(`문제 범위: ${start}~${end}, 필터된 문제: ${pool.length}개`);
 
   // 항상 문제 순서를 무작위로
   pool = shuffle([...pool]);
@@ -450,12 +480,15 @@ function startQuiz() {
   cnt = Math.min(cnt, pool.length);
   questions = pool.slice(0, cnt);
 
+  console.log(`선택된 문제 수: ${questions.length}개`);
+
   current = 0; score = 0; answered = []; wrongQ = [];
 
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('result-screen').style.display = 'none';
   document.getElementById('quiz-screen').style.display = 'block';
   renderQ();
+  console.log('시험 시작됨');
 }
 
 // ── RENDER QUESTION ──
