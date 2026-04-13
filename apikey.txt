@@ -1,0 +1,18 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAphJtq1lBfnn1wdeO_cMGbFOTnMLRFMyA",
+  authDomain: "esports-quiz-70ec9.firebaseapp.com",
+  databaseURL: "https://esports-quiz-70ec9-default-rtdb.firebaseio.com",
+  projectId: "esports-quiz-70ec9",
+  storageBucket: "esports-quiz-70ec9.firebasestorage.app",
+  messagingSenderId: "939758278402",
+  appId: "1:939758278402:web:1790d3b5555129cc7dd41b"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);

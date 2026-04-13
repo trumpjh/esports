@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>e스포츠 윤리 퀴즈</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+  
   <style>
     :root {
       --primary: #6C63FF;
@@ -371,6 +376,11 @@
     <div id="wrong-items"></div>
   </div>
 
+  <div class="wrong-list" id="ranking-wrap" style="display:none; border-top: 2px solid var(--primary); margin-top: 20px; padding-top: 20px;">
+    <h3 style="color: var(--primary);">🏆 실시간 순위</h3>
+    <div id="ranking-items" style="font-size: 0.9rem;"></div>
+  </div>
+
   <div class="result-actions">
     <button class="btn btn-outline" onclick="retryWrong()" id="btn-retry-wrong" style="display:none">틀린 문제만 다시</button>
     <button class="btn btn-primary" onclick="goSetup()">처음으로</button>
@@ -380,6 +390,22 @@
 <div id="toast"></div>
 
 <script>
+// ── FIREBASE CONFIG ──
+// Firebase 프로젝트 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyAphJtq1lBfnn1wdeO_cMGbFOTnMLRFMyA",
+  authDomain: "esports-quiz-70ec9.firebaseapp.com",
+  databaseURL: "https://esports-quiz-70ec9-default-rtdb.firebaseio.com",
+  projectId: "esports-quiz-70ec9",
+  storageBucket: "esports-quiz-70ec9.appspot.com",
+  messagingSenderId: "939758278402",
+  appId: "1:939758278402:web:1790d3b5555129cc7dd41b"
+};
+
+// Firebase 초기화
+firebase.initializeApp(firebaseConfig);
+let db = firebase.database();
+
 // ── DATA ──
 let ALL_QUESTIONS = [];
 
@@ -618,7 +644,94 @@ function showResult() {
     document.getElementById('btn-retry-wrong').style.display = 'none';
   }
 
+  // Firebase에 점수 저장하고 순위 로드
+  await saveScoreToFirebase();
+  await loadLeaderboard();
+
   window.scrollTo(0, 0);
+}
+
+// ── FIREBASE 점수 저장 ──
+async function saveScoreToFirebase() {
+  if (!db) return; // Firebase가 설정되지 않으면 무시
+
+  const name = document.getElementById('student-name').value.trim();
+  if (!name) {
+    showToast('학번을 입력하면 순위에 기록됩니다.');
+    return;
+  }
+
+  const total = questions.length;
+  const timestamp = new Date().getTime();
+  
+  try {
+    // 학번으로 점수 기록
+    await db.ref(`scores/${name}`).push({
+      score: score,
+      total: total,
+      percentage: Math.round((score / total) * 100),
+      timestamp: timestamp,
+      date: new Date().toLocaleString('ko-KR')
+    });
+  } catch (err) {
+    console.log('Firebase 저장 실패:', err);
+  }
+}
+
+// ── FIREBASE 순위 조회 ──
+async function loadLeaderboard() {
+  if (!db) {
+    document.getElementById('ranking-wrap').style.display = 'none';
+    return;
+  }
+
+  try {
+    const snapshot = await db.ref('scores').get();
+    const allScores = [];
+
+    snapshot.forEach(nameSnap => {
+      nameSnap.forEach(recordSnap => {
+        const data = recordSnap.val();
+        allScores.push({
+          name: nameSnap.key,
+          score: data.score,
+          total: data.total,
+          percentage: data.percentage,
+          timestamp: data.timestamp
+        });
+      });
+    });
+
+    // 최고 점수 기준으로 정렬 (같으면 최신 순)
+    allScores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.timestamp - a.timestamp;
+    });
+
+    // 상위 10명만 표시
+    const top10 = allScores.slice(0, 10);
+    
+    if (top10.length === 0) {
+      document.getElementById('ranking-wrap').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('ranking-wrap').style.display = 'block';
+    const rankingHtml = top10.map((item, idx) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border);">
+        <div>
+          <span style="font-weight: 700; color: var(--primary); min-width: 40px;">${idx + 1}등</span>
+          <span style="margin-left: 12px;">${item.name}</span>
+        </div>
+        <span style="color: var(--success);">${item.score}/${item.total} (${item.percentage}%)</span>
+      </div>
+    `).join('');
+
+    document.getElementById('ranking-items').innerHTML = rankingHtml;
+  } catch (err) {
+    console.log('순위 조회 실패:', err);
+    document.getElementById('ranking-wrap').style.display = 'none';
+  }
 }
 
 function retryWrong() {
