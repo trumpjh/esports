@@ -509,12 +509,14 @@ function renderQ() {
 
   const wrap = document.getElementById('options-wrap');
   wrap.innerHTML = '';
-  letters.forEach(letter => {
+  letters.forEach((letter, idx) => {
     const div = document.createElement('div');
     div.className = 'option';
     div.dataset.letter = letter;
+    // 알파벳 대신 1~5로 표시
+    const badgeNum = idx + 1;
     div.innerHTML = `
-      <div class="opt-badge">${letter}</div>
+      <div class="opt-badge">${badgeNum}</div>
       <div class="opt-text">${q.options[letter]}</div>
     `;
     div.onclick = () => selectOption(letter);
