@@ -823,6 +823,7 @@ async function showResult(isIncomplete = false) {
   
   // 순위 로드 및 표시
   await loadLeaderboard();
+  document.getElementById('ranking-sidebar').classList.remove('show');
 
   window.scrollTo(0, 0);
 }
@@ -950,11 +951,13 @@ async function showWelcomeScreen() {
   document.getElementById('quiz-screen').style.display = 'none';
   document.getElementById('result-screen').style.display = 'none';
   document.getElementById('welcome-overlay').style.display = 'flex';
+  document.getElementById('ranking-sidebar').classList.add('show');
   await loadLeaderboard();
 }
 
 function proceedToSetup() {
   document.getElementById('welcome-overlay').style.display = 'none';
+  document.getElementById('ranking-sidebar').classList.remove('show');
   document.getElementById('setup-screen').style.display = 'block';
   window.scrollTo(0, 0);
 }
