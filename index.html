@@ -304,11 +304,6 @@
       flex-shrink: 0;
     }
 
-    /* Adjust main content for sidebar */
-    .wrap {
-      margin-right: 320px;
-    }
-
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 24px; left: 50%;
@@ -473,6 +468,8 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   console.log('✅ Firebase 초기화 완료');
+  // 페이지 로드 시 순위 표시
+  loadLeaderboard();
 } catch (err) {
   console.error('Firebase 초기화 실패:', err);
 }
