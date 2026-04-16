@@ -245,6 +245,70 @@
     .result-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
     .result-actions .btn { flex: 1; min-width: 140px; }
 
+    /* ── RANKING SIDEBAR ── */
+    #ranking-sidebar {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 320px;
+      height: 100vh;
+      background: var(--card);
+      border-left: 2px solid var(--border);
+      overflow-y: auto;
+      padding: 20px 16px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    }
+    #ranking-sidebar.show { display: flex; }
+    #ranking-sidebar h3 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: var(--primary);
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+    #ranking-items {
+      font-size: 0.85rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+    #ranking-items > div {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    #ranking-items > div:last-child {
+      border-bottom: none;
+    }
+    #ranking-items .rank-badge {
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 40px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    #ranking-items .rank-name {
+      flex: 1;
+      word-break: break-all;
+      overflow: hidden;
+    }
+    #ranking-items .rank-score {
+      color: var(--success);
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Adjust main content for sidebar */
+    .wrap {
+      margin-right: 320px;
+    }
+
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 24px; left: 50%;
@@ -262,6 +326,12 @@
   </style>
 </head>
 <body>
+
+<!-- ── RANKING SIDEBAR ── -->
+<div id="ranking-sidebar" class="">
+  <h3>🏆 Top 20 순위</h3>
+  <div id="ranking-items"></div>
+</div>
 
 <header>
   <h1>🎮 e스포츠 윤리 퀴즈</h1>
@@ -374,11 +444,6 @@
   <div class="wrong-list" id="wrong-list-wrap" style="display:none">
     <h3>❌ 틀린 문제 복습</h3>
     <div id="wrong-items"></div>
-  </div>
-
-  <div class="wrong-list" id="ranking-wrap" style="display:none; border-top: 2px solid var(--primary); margin-top: 20px; padding-top: 20px;">
-    <h3 style="color: var(--primary);">🏆 실시간 순위</h3>
-    <div id="ranking-items" style="font-size: 0.9rem;"></div>
   </div>
 
   <div class="result-actions">
@@ -738,14 +803,14 @@ async function saveScoreToFirebase() {
 // ── FIREBASE 순위 조회 ──
 async function loadLeaderboard() {
   if (!db) {
-    document.getElementById('ranking-wrap').style.display = 'none';
+    document.getElementById('ranking-sidebar').classList.remove('show');
     return;
   }
 
   try {
     const snapshot = await db.ref('scores').get();
     if (!snapshot.exists()) {
-      document.getElementById('ranking-wrap').style.display = 'none';
+      document.getElementById('ranking-sidebar').classList.remove('show');
       return;
     }
 
@@ -785,31 +850,29 @@ async function loadLeaderboard() {
       return b.percentage - a.percentage;
     });
 
-    // 상위 10명만 표시
-    const top10 = allScores.slice(0, 10);
+    // 상위 20명까지 표시
+    const top20 = allScores.slice(0, 20);
     
-    if (top10.length === 0) {
-      document.getElementById('ranking-wrap').style.display = 'none';
+    if (top20.length === 0) {
+      document.getElementById('ranking-sidebar').classList.remove('show');
       return;
     }
 
-    document.getElementById('ranking-wrap').style.display = 'block';
-    const rankingHtml = top10.map((item, idx) => `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border);">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-weight: 700; color: var(--primary); min-width: 50px; text-align: center;">
-            ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '등'}
-          </span>
-          <span style="word-break: break-all;">${item.name}</span>
-        </div>
-        <span style="color: var(--success); font-weight: 700; white-space: nowrap;">${item.score}/${item.total}</span>
+    document.getElementById('ranking-sidebar').classList.add('show');
+    const rankingHtml = top20.map((item, idx) => `
+      <div>
+        <span class="rank-badge">
+          ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '위'}
+        </span>
+        <span class="rank-name">${item.name}</span>
+        <span class="rank-score">${item.score}/${item.total}</span>
       </div>
     `).join('');
 
     document.getElementById('ranking-items').innerHTML = rankingHtml;
   } catch (err) {
     console.log('순위 조회 실패:', err);
-    document.getElementById('ranking-wrap').style.display = 'none';
+    document.getElementById('ranking-sidebar').classList.remove('show');
   }
 }
 
