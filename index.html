@@ -45,9 +45,51 @@
     .wrap { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
 
     /* ── SETUP SCREEN ── */
-    #setup-screen { display: block; }
+    #setup-screen { display: none; }
     #quiz-screen  { display: none; }
     #result-screen{ display: none; }
+    #welcome-screen { display: block; }
+
+    /* ── WELCOME OVERLAY ── */
+    #welcome-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .welcome-dialog {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .welcome-dialog h2 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+    .welcome-dialog p {
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .welcome-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .welcome-actions .btn {
+      flex: 1;
+      padding: 12px 20px;
+    }
 
     .setup-card {
       background: var(--card);
@@ -333,6 +375,19 @@
   <p>54문항으로 e스포츠 윤리를 공부해보세요</p>
 </header>
 
+<!-- ── WELCOME SCREEN ── -->
+<div id="welcome-overlay">
+  <div class="welcome-dialog">
+    <h2>🏆 Top 20 순위</h2>
+    <div id="welcome-ranking-items" style="margin: 20px 0; text-align: left; max-height: 300px; overflow-y: auto; font-size: 0.85rem;"></div>
+    <p>시험을 시작하시겠습니까?</p>
+    <div class="welcome-actions">
+      <button class="btn btn-outline" onclick="cancelWelcome()" style="flex:1">취소</button>
+      <button class="btn btn-primary" onclick="proceedToSetup()" style="flex:1">시작</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── SETUP SCREEN ── -->
 <div class="wrap" id="setup-screen">
   <div class="setup-card">
@@ -468,8 +523,8 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   console.log('✅ Firebase 초기화 완료');
-  // 페이지 로드 시 순위 표시
-  loadLeaderboard();
+  // 페이지 로드 시 순위 표시 및 welcome 창 표시
+  showWelcomeScreen();
 } catch (err) {
   console.error('Firebase 초기화 실패:', err);
 }
@@ -546,6 +601,8 @@ function startQuiz() {
 
   current = 0; score = 0; answered = []; wrongQ = [];
 
+  document.getElementById('welcome-overlay').style.display = 'none';
+  document.getElementById('ranking-sidebar').classList.remove('show');
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('result-screen').style.display = 'none';
   document.getElementById('quiz-screen').style.display = 'block';
@@ -855,6 +912,7 @@ async function loadLeaderboard() {
       return;
     }
 
+    // ranking-sidebar 업데이트
     document.getElementById('ranking-sidebar').classList.add('show');
     const rankingHtml = top20.map((item, idx) => `
       <div>
@@ -867,13 +925,43 @@ async function loadLeaderboard() {
     `).join('');
 
     document.getElementById('ranking-items').innerHTML = rankingHtml;
+
+    // welcome 창의 랭킹도 업데이트
+    const welcomeRankingHtml = top20.map((item, idx) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border);">
+        <span style="font-weight: 700; color: var(--primary); min-width: 30px;">
+          ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '위'}
+        </span>
+        <span style="flex: 1;">${item.name}</span>
+        <span style="color: var(--success); font-weight: 700;">${item.score}/${item.total}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('welcome-ranking-items').innerHTML = welcomeRankingHtml;
   } catch (err) {
     console.log('순위 조회 실패:', err);
     document.getElementById('ranking-sidebar').classList.remove('show');
   }
 }
 
-function retryWrong() {
+// ── WELCOME SCREEN ──
+async function showWelcomeScreen() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('welcome-overlay').style.display = 'flex';
+  await loadLeaderboard();
+}
+
+function proceedToSetup() {
+  document.getElementById('welcome-overlay').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function cancelWelcome() {
+  showToast('☺️ 시험 시작 안함');
+}
   questions = wrongQ.map(w => w.q);
   current = 0; score = 0; answered = []; wrongQ = [];
   document.getElementById('result-screen').style.display = 'none';
@@ -883,8 +971,11 @@ function retryWrong() {
 
 function goSetup() {
   document.getElementById('result-screen').style.display = 'none';
-  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('welcome-overlay').style.display = 'flex';
   document.getElementById('student-name').value = ''; // 학번 입력 초기화
+  loadLeaderboard();
   window.scrollTo(0, 0);
 }
 
