@@ -962,8 +962,13 @@ function proceedToSetup() {
 function cancelWelcome() {
   showToast('☺️ 시험 시작 안함');
 }
+
+function retryWrong() {
   questions = wrongQ.map(w => w.q);
-  current = 0; score = 0; answered = []; wrongQ = [];
+  current = 0;
+  score = 0;
+  answered = [];
+  wrongQ = [];
   document.getElementById('result-screen').style.display = 'none';
   document.getElementById('quiz-screen').style.display = 'block';
   renderQ();
